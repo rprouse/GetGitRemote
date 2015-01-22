@@ -13,13 +13,23 @@ namespace GetGitRemote
 
             using ( var repo = new Repository( path ) )
             {
+                Console.WriteLine( "BRANCHES" );
+                Console.WriteLine();
                 foreach ( var branch in repo.Branches )
                 {
-                    Console.WriteLine( "{0} -> {1}", branch.Name, branch.Remote );
+                    Console.WriteLine( "{0} -> {1} -> {2}", branch.Name, branch.Remote.Name, branch.Remote.Url );
+                }
+
+                Console.WriteLine( "CONFIG" );
+                Console.WriteLine();
+                foreach ( var config in repo.Config )
+                {
+                    if ( config.Key.StartsWith( "remote." ) && config.Key.EndsWith( ".url" ) )
+                        Console.WriteLine( "{0} = {1}", config.Key, config.Value );
                 }
             }
             Console.WriteLine( "*** Press ENTER to Exit ***" );
-            Console.ReadLine( );
+            Console.ReadLine();
         }
 
         /// <summary>
