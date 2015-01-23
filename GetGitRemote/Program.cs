@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using LibGit2Sharp;
@@ -16,18 +17,56 @@ namespace GetGitRemote
         {
             string path = args.Length == 1 ? args[0] : GetWorkingDirectory();
 
+            path = FindRootOfRepository( path );
+            if ( path != null )
+            {
+                // Need to walk up the directory structure until we find a .git directory
+                InspectRepository( path );
+            }
+            else
+            {
+                Console.WriteLine( "This is not a Git repository" );
+            }
+
+            Console.WriteLine();
+            Console.WriteLine( "*** Press ENTER to Exit ***" );
+            Console.ReadLine();
+        }
+
+        private static string FindRootOfRepository( string path )
+        {
+            var dir = new DirectoryInfo( path );
+            if ( !dir.Exists ) return null;
+
+            while ( dir != null )
+            {
+                if ( dir.EnumerateDirectories( ".git" ).Any( ) ) return dir.FullName;
+                dir = dir.Parent;
+            }
+            return null;
+        }
+
+        private static void InspectRepository( string path )
+        {
             using ( var repo = new Repository( path ) )
             {
                 Console.WriteLine( "BRANCHES" );
-                Console.WriteLine();
+                Console.WriteLine( );
                 foreach ( var branch in repo.Branches )
                 {
-                    Console.WriteLine( "{0} -> {1} -> {2}", branch.Name, branch.Remote.Name, branch.Remote.Url );
+                    if ( branch.Remote == null )
+                    {
+                        Console.WriteLine( branch.Name );
+                    }
+                    else
+                    {
+                        Console.WriteLine( "{0} -> {1} -> {2}", branch.Name, branch.Remote.Name, branch.Remote.Url );
+                    }
                 }
 
-                Console.WriteLine();
+                Console.WriteLine( );
                 Console.WriteLine( "CONFIG" );
-                Console.WriteLine();
+                Console.WriteLine( );
                 foreach ( var config in repo.Config )
                 {
                     var origin = parseOrigin.Match( config.Key );
@@ -41,9 +80,6 @@ namespace GetGitRemote
                     }
                 }
             }
-            Console.WriteLine();
-            Console.WriteLine( "*** Press ENTER to Exit ***" );
-            Console.ReadLine();
         }
 
         private static string GetRemoteGitHubRepository( string repoUri )
