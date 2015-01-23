@@ -8,6 +8,10 @@ namespace GetGitRemote
 {
     class Program
     {
+        private static readonly Regex parseOrigin = new Regex( @"remote\.(?<remote>\w+)\.url" );
+        private static readonly Regex parseSshRepo = new Regex( @"git@github\.com:(?<repo>\w+/\w+)\.git" );
+        private static readonly Regex parseHttpsRepo = new Regex( @"https://github.com/(?<repo>\w+/\w+)\.git" );
+
         static void Main( string[] args )
         {
             string path = args.Length == 1 ? args[0] : GetWorkingDirectory();
@@ -24,17 +28,33 @@ namespace GetGitRemote
                 Console.WriteLine();
                 Console.WriteLine( "CONFIG" );
                 Console.WriteLine();
-                var regex = new Regex( @"remote\.(?<remote>\w+)\.url" );
                 foreach ( var config in repo.Config )
                 {
-                    var match = regex.Match( config.Key );
-                    if ( match.Success )
-                        Console.WriteLine( "{0} = {1}", match.Groups["remote"].Value, config.Value );
+                    var origin = parseOrigin.Match( config.Key );
+                    if ( origin.Success )
+                    {
+                        var githubRepo = GetRemoteGitHubRepository( config.Value );
+                        if ( githubRepo != null )
+                        {
+                            Console.WriteLine( "{0} = {1}", origin.Groups["remote"].Value, githubRepo );
+                        }
+                    }
                 }
             }
             Console.WriteLine();
             Console.WriteLine( "*** Press ENTER to Exit ***" );
             Console.ReadLine();
+        }
+
+        private static string GetRemoteGitHubRepository( string repoUri )
+        {
+            var ssh = parseSshRepo.Match( repoUri );
+            if ( ssh.Success ) return ssh.Groups["repo"].Value;
+
+            var https = parseHttpsRepo.Match( repoUri );
+            if ( https.Success ) return https.Groups["repo"].Value;
+
+            return null;
         }
 
         /// <summary>
